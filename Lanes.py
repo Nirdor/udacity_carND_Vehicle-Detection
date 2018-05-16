@@ -34,7 +34,7 @@ def thresh_green(img):
 def transform(img):
     h, w = img.shape[:2]
     dx = 200
-    pts1 = np.float32([[265, 685],[610, 440],[670, 440],[1050, 685]])
+    pts1 = np.float32([[265, 685],[620, 440],[680, 440],[1050, 685]])
     pts2 = np.float32([[dx, w], [dx, 0], [h - dx, 0], [h - dx, w]])
 
     M = cv2.getPerspectiveTransform(pts1, pts2)
@@ -44,13 +44,14 @@ def transform(img):
 def retransform(img):
     h, w = img.shape[:2]
     dx = 200
-    pts1 = np.float32([[265, 685],[610, 440],[670, 440],[1050, 685]])
+    pts1 = np.float32([[265, 685],[620, 440],[680, 440],[1050, 685]])
     pts2 = np.float32([[dx, h], [dx, 0], [w - dx, 0], [w - dx, h]])
 
     M = cv2.getPerspectiveTransform(pts2, pts1)
 
     return cv2.warpPerspective(img, M, (h, w))
 
+#Sliding window algorithm
 def sliding_window(transformed, leftx_base, rightx_base, nwindows = 15):
     h, w = transformed.shape[:2]
     
@@ -156,6 +157,7 @@ def sliding_window(transformed, leftx_base, rightx_base, nwindows = 15):
     
     return left_fit, right_fit, out_img
 
+
 def calcCurvature(ploty, fitx):
     #Step 7 Calculate curvature:
     # Define conversions in x and y from pixels space to meters
@@ -177,6 +179,8 @@ def calcCurvature(ploty, fitx):
     
     return curverad
 
+#Compare found lanes with each other and previous found lanes with respect to distance from each other and curvature
+#Return if the new found lanes seem to be ok
 def checkSanity(ploty, left_fit, right_fit, left_fit_old = None, right_fit_old = None):
     sane = [True, True]
     if left_fit is not None: 
@@ -229,6 +233,7 @@ def checkSanity(ploty, left_fit, right_fit, left_fit_old = None, right_fit_old =
         
     return sane, (distance, curve_dist, left_curve, right_curve, distance_left, distance_right)
 
+#wrapper function for mask, transform and sliding_window and calculates start points for sliding window
 def find_lanes(img, mask, left_fit_compare = None, right_fit_compare = None):
     h, w = img.shape[:2]
     
@@ -256,6 +261,7 @@ def find_lanes(img, mask, left_fit_compare = None, right_fit_compare = None):
         
     return sliding_window(transformed, leftx_base, rightx_base), (leftx_base, rightx_base)
 
+
 class State():
     
     def __init__(self):
@@ -268,14 +274,15 @@ class State():
 last_lanes_limit = 5
 debug = False
 
+#final Pipeline
 def pipeline(img):
     state.frame += 1
     
     #Step 0 #RGB2BGR
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    uimg = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     
     #Step 1 Undistort
-    uimg = undistort(img)
+    #uimg = undistort(img)
     
     #get Params
     h, w = uimg.shape[:2]
@@ -353,7 +360,7 @@ def pipeline(img):
     if right_fit is None or not sane[1] and old_right is not None:
         right_fit = old_right
         
-    #Step 6 Draw lines
+    #Step 6 Draw lines: use mean of last found 5 lanes
     marked_lanes = np.zeros((w, h, 3), np.uint8)
     lanePoly = np.zeros((w, h, 1), np.uint8)
     
@@ -440,3 +447,4 @@ def pipeline(img):
     
     result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
     return result
+    
