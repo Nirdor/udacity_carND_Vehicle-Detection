@@ -275,7 +275,7 @@ last_lanes_limit = 5
 debug = False
 
 #final Pipeline
-def pipeline(img):
+def pipeline(img, state):
     state.frame += 1
     
     #Step 0 #RGB2BGR
